@@ -19,6 +19,7 @@ const emailSchema = z.object({
   priority: z.enum(["HIGH", "MEDIUM", "LOW"]),
   category: z.string(),
   read_no_reply: z.boolean(),
+  has_reply: z.boolean(),
   status: z.enum(["PENDING", "APPROVED"]),
   triage_source: z.enum(["DEMO", "AI"]),
 })
@@ -44,6 +45,7 @@ export interface Email {
   priority: "High" | "Normal" | "Low"
   category: string
   readNoReply: boolean
+  hasReply: boolean
   approved: boolean
   source: "DEMO" | "AI"
 }
@@ -123,6 +125,7 @@ function mapEmail(input: unknown): Email {
           : "Normal",
     category: row.category,
     readNoReply: row.read_no_reply,
+    hasReply: row.has_reply,
     approved: row.status === "APPROVED",
     source: row.triage_source,
   }

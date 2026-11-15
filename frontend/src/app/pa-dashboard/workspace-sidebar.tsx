@@ -1,5 +1,4 @@
 import { queues } from "./queues"
-import { Mail } from "lucide-react"
 import {
   Sidebar,
   SidebarContent,
@@ -28,16 +27,11 @@ export function WorkspaceSidebar({
   return (
     <Sidebar collapsible="offcanvas">
       <SidebarHeader className="gap-6 p-5">
-        <div className="flex items-center gap-3">
-          <div className="flex size-9 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-            <Mail className="size-5" />
-          </div>
-          <div>
-            <p className="font-semibold tracking-tight">SpeedUp</p>
-            <p className="text-xs text-muted-foreground">
-              Your executive inbox, in sync
-            </p>
-          </div>
+        <div>
+          <img src="/speedup-logo.png" alt="Speedup" className="w-40 dark:invert" />
+          <p className="text-xs text-muted-foreground">
+            Your executive inbox, in sync
+          </p>
         </div>
         <div className="space-y-2">
           <label

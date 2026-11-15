@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
+import { ModeToggle } from "@/components/mode-toggle"
 import {
   SidebarInset,
   SidebarProvider,
@@ -42,7 +43,12 @@ export default function PADashboard() {
   if (!client)
     return (
       <main className="mx-auto flex min-h-svh max-w-lg flex-col justify-center gap-4 p-6">
-        <h1 className="text-2xl font-semibold">SpeedUp</h1>
+        <div className="flex items-center justify-between">
+          <h1>
+            <img src="/speedup-logo.png" alt="Speedup" className="w-40 dark:invert" />
+          </h1>
+          <ModeToggle />
+        </div>
         {error ? (
           <>
             <p role="alert" className="text-sm text-destructive">
@@ -99,6 +105,7 @@ export default function PADashboard() {
             </span>
           </div>
           <div className="flex flex-wrap gap-2">
+            <ModeToggle />
             <Button
               variant="ghost"
               size="icon"
@@ -258,7 +265,7 @@ export default function PADashboard() {
           </div>
         </main>
         <footer className="border-t px-6 py-4 text-xs text-muted-foreground">
-          SpeedUp · PA email workspace{" "}
+          Speedup · PA email workspace{" "}
           <span className="float-right">Demo session</span>
         </footer>
       </SidebarInset>
@@ -270,6 +277,7 @@ export default function PADashboard() {
           document.getElementById("copilot-toggle")?.focus()
         }}
         client={client}
+        vip={vip}
         email={selected}
         onSelect={(id) => {
           setQueue("ALL")

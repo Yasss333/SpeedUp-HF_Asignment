@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useSyncExternalStore } from "react"
 import { ArrowUp, ArrowUpRight, Mail, Sparkles, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
+import { VoiceCall } from "./voice-call"
 import {
   Sheet,
   SheetContent,
@@ -9,7 +10,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet"
-import { useInbox, type Client, type Email } from "./store"
+import { matchesQueue, useInbox, type Client, type Email } from "./store"
 
 interface Message {
   id: string
@@ -27,12 +28,14 @@ export function Copilot({
   open,
   onClose,
   client,
+  vip,
   email,
   onSelect,
 }: {
   open: boolean
   onClose: () => void
   client: Client
+  vip: boolean
   email?: Email
   onSelect: (id: string) => void
 }) {
@@ -44,6 +47,12 @@ export function Copilot({
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const pending = emails.filter(
     (item) => item.clientId === client.id && !item.approved
+  )
+  const urgent = pending.filter(
+    (item) =>
+      item.priority === "High" &&
+      matchesQueue(item, vip ? "CLIENT" : "PA") &&
+      (vip || !item.hasReply)
   )
   useEffect(() => {
     if (open && !mobile) inputRef.current?.focus()
@@ -86,7 +95,7 @@ export function Copilot({
       related = pending.filter((item) => item.priority === "High").slice(0, 3)
     } else {
       reply =
-        "I can summarize this inbox, find high-priority or unanswered threads, show delegation rules, and bring up the selected email's suggested reply. Choose a shortcut below. Open-ended AI chat and voice are not connected yet."
+        "I can summarize this inbox, find high-priority or unanswered threads, show delegation rules, and bring up the selected email's suggested reply. Choose a shortcut below."
     }
     setMessages((previous) => [
       ...previous,
@@ -134,7 +143,7 @@ export function Copilot({
           <Sparkles className="size-4" />
         </span>
         <div className="min-w-0 flex-1">
-          <h2 className="font-semibold">SpeedUp Copilot</h2>
+          <h2 className="font-semibold">Speedup Copilot</h2>
           <p className="truncate text-xs text-muted-foreground">
             Inbox tools for {client.name}
           </p>
@@ -148,6 +157,7 @@ export function Copilot({
           <X />
         </Button>
       </div>
+      <VoiceCall key={String(vip)} urgent={urgent} vip={vip} />
       <div
         className="min-h-0 flex-1 overflow-y-auto p-4"
         role="log"
