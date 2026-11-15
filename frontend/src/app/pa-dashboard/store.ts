@@ -20,7 +20,6 @@ interface InboxState {
   clients: Client[]
   emails: Email[]
   loading: boolean
-  loadProgress: number
   initialized: boolean
   busy: string
   error: string
@@ -64,16 +63,14 @@ export const useInbox = create<InboxState>((set, get) => {
     clients: [],
     emails: [],
     loading: false,
-    loadProgress: 0,
     initialized: false,
     busy: "",
     error: "",
     initialize: async () => {
       if (get().loading) return
-      set({ loading: true, loadProgress: 0, error: "" })
+      set({ loading: true, error: "" })
       try {
         await api.login()
-        set({ loadProgress: 50 })
         const [clients, emails] = await Promise.all([
           api.clients(),
           api.emails(),
@@ -81,7 +78,6 @@ export const useInbox = create<InboxState>((set, get) => {
         const previous = get().emails
         set({
           clients,
-          loadProgress: 100,
           initialized: true,
           emails: emails.map((email) => {
             const local = previous.find((item) => item.id === email.id)

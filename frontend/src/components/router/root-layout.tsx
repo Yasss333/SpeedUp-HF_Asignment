@@ -1,6 +1,6 @@
 import { Outlet, useNavigation } from "react-router-dom"
 
-import { LoadingSpinner } from "@/components/ui/loading-spinner"
+import { WorkspaceLoading } from "@/components/workspace-loading"
 
 /** Thin top bar shown while the next route's code is loading. */
 function RouteProgress() {
@@ -29,7 +29,7 @@ export function RootLayout() {
 export function RootFallback() {
   return (
     <div className="flex min-h-svh items-center justify-center">
-      <LoadingSpinner />
+      <WorkspaceLoading />
     </div>
   )
 }
