@@ -35,7 +35,7 @@ export default function PADashboard() {
   const [vip, setVip] = useState(false)
   const [notice, setNotice] = useState("")
   const [copilotOpen, setCopilotOpen] = useState(false)
-  const { emails, clients, initialize, loading, busy, error } = useInbox()
+  const { emails, clients, initialize, loading, loadProgress, busy, error } = useInbox()
   useEffect(() => {
     void initialize()
   }, [initialize])
@@ -57,7 +57,25 @@ export default function PADashboard() {
             <Button onClick={() => void initialize()}>Retry connection</Button>
           </>
         ) : (
-          <p role="status">Loading your demo workspace...</p>
+          <div className="flex items-center gap-4">
+            <div
+              aria-hidden="true"
+              className="grid size-14 shrink-0 place-items-center rounded-full border-2 border-primary text-sm font-medium tabular-nums"
+            >
+              {loadProgress}%
+            </div>
+            <div
+              role="progressbar"
+              aria-label="Loading your demo workspace"
+              aria-valuenow={loadProgress}
+              className="text-sm"
+            >
+              <p className="font-medium">Loading your demo workspace…</p>
+              <p className="text-muted-foreground">
+                {loadProgress === 0 ? "Connecting to the service." : "Loading your inbox."}
+              </p>
+            </div>
+          </div>
         )}
       </main>
     )
