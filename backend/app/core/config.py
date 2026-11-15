@@ -14,6 +14,8 @@ class Settings(BaseSettings):
     openai_api_key: SecretStr | None = None
     openrouter_api_key: SecretStr | None = None
     google_api_key: SecretStr | None = None
+    demo_enabled: bool = True
+    openrouter_model: str = "openai/gpt-4o-mini"
 
 
 @lru_cache

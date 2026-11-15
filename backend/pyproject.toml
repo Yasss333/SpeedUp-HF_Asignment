@@ -8,6 +8,8 @@ dependencies = [
   "uvicorn[standard]>=0.34,<1",
   "pydantic-settings>=2.7,<3",
   "pymongo>=4.13,<5",
+  "agno>=2,<3",
+  "openai>=2,<3",
 ]
 
 [dependency-groups]
