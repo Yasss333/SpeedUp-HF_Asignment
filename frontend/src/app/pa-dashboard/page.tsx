@@ -1,10 +1,10 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import {
   CheckCheck,
   Eye,
-  Inbox,
   Mail,
-  Plus,
+  RefreshCw,
+  Sparkles,
   Search,
   ShieldCheck,
 } from "lucide-react"
@@ -12,133 +12,19 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarHeader,
   SidebarInset,
   SidebarProvider,
   SidebarTrigger,
-  useSidebar,
 } from "@/components/ui/sidebar"
 import { cn } from "@/lib/utils"
-import { clients, matchesQueue, useInbox, type Queue } from "./store"
+import { matchesQueue, useInbox, type Queue } from "./store"
 import { ReadingPane } from "./reading-pane"
 import { InboxList } from "./inbox-list"
-
-const queues: { id: Queue; label: string; icon: typeof Inbox }[] = [
-  { id: "ALL", label: "All emails", icon: Inbox },
-  { id: "PA", label: "PA action", icon: Mail },
-  { id: "CLIENT", label: "Client action", icon: ShieldCheck },
-  { id: "READ", label: "Read, no reply", icon: Eye },
-  { id: "FYI", label: "FYI", icon: Inbox },
-  { id: "APPROVED", label: "Approved drafts", icon: CheckCheck },
-]
-
-function WorkspaceSidebar({
-  clientId,
-  onClient,
-  queue,
-  onQueue,
-}: {
-  clientId: string
-  onClient: (id: string) => void
-  queue: Queue
-  onQueue: (queue: Queue) => void
-}) {
-  const emails = useInbox((state) => state.emails).filter(
-    (email) => email.clientId === clientId
-  )
-  const { setOpenMobile } = useSidebar()
-  return (
-    <Sidebar collapsible="offcanvas">
-      <SidebarHeader className="gap-6 p-5">
-        <div className="flex items-center gap-3">
-          <div className="flex size-9 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-            <Mail className="size-5" />
-          </div>
-          <div>
-            <p className="font-semibold tracking-tight">SpeedUp</p>
-            <p className="text-xs text-muted-foreground">
-              Your executive inbox, in sync
-            </p>
-          </div>
-        </div>
-        <div className="space-y-2">
-          <label
-            htmlFor="client-inbox"
-            className="text-xs font-medium text-muted-foreground"
-          >
-            CLIENT WORKSPACE
-          </label>
-          <select
-            id="client-inbox"
-            aria-label="Client inbox"
-            className="h-10 w-full rounded-lg border bg-background px-2 text-sm focus-visible:outline-ring"
-            value={clientId}
-            onChange={(event) => onClient(event.target.value)}
-          >
-            {clients.map((client) => (
-              <option key={client.id} value={client.id}>
-                {client.name}
-              </option>
-            ))}
-          </select>
-          <p className="text-xs text-muted-foreground">
-            {clients.find((client) => client.id === clientId)?.role}
-          </p>
-        </div>
-      </SidebarHeader>
-      <SidebarContent className="px-3 py-3">
-        <p className="px-3 pb-3 text-xs font-medium text-muted-foreground">
-          INBOX
-        </p>
-        <nav aria-label="Inbox queues" className="space-y-1">
-          {queues.map((item) => (
-            <button
-              key={item.id}
-              aria-current={queue === item.id ? "page" : undefined}
-              onClick={() => {
-                onQueue(item.id)
-                setOpenMobile(false)
-              }}
-              className={cn(
-                "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors hover:bg-sidebar-accent focus-visible:outline-2 focus-visible:outline-ring",
-                queue === item.id && "bg-sidebar-accent font-medium"
-              )}
-            >
-              <item.icon className="size-4" />
-              {item.label}
-              <span className="ml-auto text-xs text-muted-foreground">
-                {emails.filter((email) => matchesQueue(email, item.id)).length}
-              </span>
-            </button>
-          ))}
-        </nav>
-      </SidebarContent>
-      <SidebarFooter className="gap-4 p-5">
-        <div className="rounded-lg border p-3">
-          <p className="mb-1 text-xs font-medium">Demo workspace</p>
-          <p className="text-xs leading-5 text-muted-foreground">
-            Sample emails and routing. No inbox is connected. Changes reset on
-            refresh.
-          </p>
-        </div>
-        <div className="flex items-center gap-3 border-t pt-4">
-          <div className="flex size-8 items-center justify-center rounded-full bg-muted text-xs font-medium">
-            PA
-          </div>
-          <div>
-            <p className="text-sm font-medium">Personal assistant</p>
-            <p className="text-xs text-muted-foreground">
-              Multi-client workspace
-            </p>
-          </div>
-        </div>
-      </SidebarFooter>
-    </Sidebar>
-  )
-}
+import { WorkspaceSidebar } from "./workspace-sidebar"
+import { queues } from "./queues"
+import { Copilot } from "./copilot"
+import { SimulationDialog } from "./simulation-dialog"
+import { RulesEditor } from "./rules-editor"
 
 export default function PADashboard() {
   const [clientId, setClientId] = useState("vikram")
@@ -147,9 +33,29 @@ export default function PADashboard() {
   const [selectedId, setSelectedId] = useState("v1")
   const [vip, setVip] = useState(false)
   const [notice, setNotice] = useState("")
-  const { emails, simulate } = useInbox()
-  const client = clients.find((item) => item.id === clientId)!
-  const clientEmails = emails.filter((email) => email.clientId === clientId)
+  const [copilotOpen, setCopilotOpen] = useState(false)
+  const { emails, clients, initialize, loading, busy, error } = useInbox()
+  useEffect(() => {
+    void initialize()
+  }, [initialize])
+  const client = clients.find((item) => item.id === clientId) ?? clients[0]
+  if (!client)
+    return (
+      <main className="mx-auto flex min-h-svh max-w-lg flex-col justify-center gap-4 p-6">
+        <h1 className="text-2xl font-semibold">SpeedUp</h1>
+        {error ? (
+          <>
+            <p role="alert" className="text-sm text-destructive">
+              {error}
+            </p>
+            <Button onClick={() => void initialize()}>Retry connection</Button>
+          </>
+        ) : (
+          <p role="status">Loading your demo workspace...</p>
+        )}
+      </main>
+    )
+  const clientEmails = emails.filter((email) => email.clientId === client.id)
   const activeQueue = vip ? "CLIENT" : queue
   const filtered = clientEmails.filter(
     (email) =>
@@ -169,7 +75,7 @@ export default function PADashboard() {
   return (
     <SidebarProvider>
       <WorkspaceSidebar
-        clientId={clientId}
+        clientId={client.id}
         onClient={changeClient}
         queue={activeQueue}
         onQueue={(value) => {
@@ -178,7 +84,9 @@ export default function PADashboard() {
           setNotice("")
         }}
       />
-      <SidebarInset className="min-w-0">
+      <SidebarInset
+        className={cn("min-w-0 transition-[margin]", copilotOpen && "lg:mr-96")}
+      >
         <header className="flex min-h-16 flex-wrap items-center justify-between gap-3 border-b px-4 py-3 md:px-6">
           <div className="flex min-w-0 items-center gap-3">
             <SidebarTrigger />
@@ -190,17 +98,38 @@ export default function PADashboard() {
               </span>
             </span>
           </div>
-          <Button
-            variant="outline"
-            onClick={() => {
-              setVip(!vip)
-              setQuery("")
-              setNotice("")
-            }}
-          >
-            <ShieldCheck />
-            {vip ? "PA command view" : "Client VIP view"}
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="Refresh inbox"
+              disabled={loading || !!busy}
+              onClick={() => void initialize()}
+            >
+              <RefreshCw className={cn(loading && "animate-spin")} />
+            </Button>
+            <Button
+              id="copilot-toggle"
+              variant={copilotOpen ? "secondary" : "outline"}
+              aria-expanded={copilotOpen}
+              aria-controls="copilot-panel"
+              onClick={() => setCopilotOpen(!copilotOpen)}
+            >
+              <Sparkles />
+              Ask Copilot
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setVip(!vip)
+                setQuery("")
+                setNotice("")
+              }}
+            >
+              <ShieldCheck />
+              {vip ? "PA command view" : "Client VIP view"}
+            </Button>
+          </div>
         </header>
         <main className="flex-1 space-y-6 p-4 md:p-6 lg:p-8">
           <div className="flex flex-wrap items-start justify-between gap-4">
@@ -221,19 +150,15 @@ export default function PADashboard() {
               </p>
             </div>
             {!vip && (
-              <Button
-                onClick={() => {
-                  const id = simulate(clientId)
+              <SimulationDialog
+                clientId={client.id}
+                onCreated={(id) => {
                   setQueue("ALL")
                   setQuery("")
                   setSelectedId(id)
-                  setNotice(
-                    "Sample email added with demo routing. No AI request was made."
-                  )
+                  setNotice("Email triaged and saved to the inbox.")
                 }}
-              >
-                <Plus /> Simulate demo email
-              </Button>
+              />
             )}
           </div>
           {!vip && (
@@ -278,14 +203,15 @@ export default function PADashboard() {
             </div>
           )}
           {!vip && (
-            <details className="rounded-lg border bg-muted/30 px-4 py-3 text-sm">
-              <summary className="cursor-pointer font-medium">
-                Delegation rules for {client.name.split(" ")[0]}
-              </summary>
-              <p className="pt-3 leading-6 text-muted-foreground">
-                {client.rules}
-              </p>
-            </details>
+            <RulesEditor key={client.id} client={client} />
+          )}
+          {error && (
+            <p
+              role="alert"
+              className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive"
+            >
+              {error}
+            </p>
           )}
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="text-base font-semibold">
@@ -336,6 +262,22 @@ export default function PADashboard() {
           <span className="float-right">Demo session</span>
         </footer>
       </SidebarInset>
+      <Copilot
+        key={client.id}
+        open={copilotOpen}
+        onClose={() => {
+          setCopilotOpen(false)
+          document.getElementById("copilot-toggle")?.focus()
+        }}
+        client={client}
+        email={selected}
+        onSelect={(id) => {
+          setQueue("ALL")
+          setVip(false)
+          setQuery("")
+          setSelectedId(id)
+        }}
+      />
     </SidebarProvider>
   )
 }

@@ -13,7 +13,17 @@ export function ReadingPane({
   vip: boolean
   onNotice: (message: string) => void
 }) {
-  const { updateDraft, escalate, approve } = useInbox()
+  const { updateDraft, saveDraft, escalate, approve, busy } = useInbox()
+  async function act(action: () => Promise<void>, message: string) {
+    try {
+      await action()
+      onNotice(message)
+    } catch (error) {
+      onNotice(
+        error instanceof Error ? error.message : "Action failed. Please retry."
+      )
+    }
+  }
   return (
     <article
       id="selected-email"
@@ -73,7 +83,7 @@ export function ReadingPane({
           <h3 className="mb-2 flex items-center gap-2 text-sm font-medium">
             <Sparkles className="size-4" /> Triage reasoning{" "}
             <span className="text-xs font-normal text-muted-foreground">
-              · demo
+              {email.source === "AI" ? "AI triage" : "Demo triage"}
             </span>
           </h3>
           <p className="text-sm leading-6 text-muted-foreground">
@@ -89,32 +99,53 @@ export function ReadingPane({
               id="reply-draft"
               className="min-h-36 leading-6"
               value={email.draft}
-              disabled={email.approved}
+              disabled={email.approved || !!busy}
               onChange={(event) => updateDraft(email.id, event.target.value)}
             />
             <p className="text-xs leading-5 text-muted-foreground">
-              Edits stay in this demo session. Email delivery is not connected.
+              {email.draft !== email.savedDraft
+                ? "Unsaved draft changes. "
+                : "Draft saved. "}
+              Email delivery is not connected.
             </p>
             {!email.approved && (
               <div className="flex flex-wrap gap-2">
+                <Button
+                  variant="outline"
+                  disabled={
+                    !!busy ||
+                    !email.draft.trim() ||
+                    email.draft === email.savedDraft
+                  }
+                  onClick={() =>
+                    void act(() => saveDraft(email.id), "Draft saved.")
+                  }
+                >
+                  Save draft
+                </Button>
                 {email.owner === "PA" && !vip && (
                   <Button
                     variant="outline"
-                    onClick={() => {
-                      escalate(email.id)
-                      onNotice("Email moved to the client's approval queue.")
-                    }}
+                    disabled={!!busy || !email.draft.trim()}
+                    onClick={() =>
+                      void act(
+                        () => escalate(email.id),
+                        "Email moved to the client's approval queue."
+                      )
+                    }
                   >
                     <ArrowUpRight /> Escalate to client
                   </Button>
                 )}
                 {email.owner === "CLIENT" && vip && (
                   <Button
-                    disabled={!email.draft.trim()}
-                    onClick={() => {
-                      approve(email.id)
-                      onNotice("Draft approved in demo. No email was sent.")
-                    }}
+                    disabled={!!busy || !email.draft.trim()}
+                    onClick={() =>
+                      void act(
+                        () => approve(email.id),
+                        "Draft approved and saved. No email was sent."
+                      )
+                    }
                   >
                     <Check /> Approve draft
                   </Button>

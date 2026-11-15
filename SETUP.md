@@ -3,9 +3,25 @@
 This project runs a PA email workspace built on the Dashboard 2 template and a
 separate FastAPI service. The frontend has two demo clients, ownership queues,
 read-without-reply flags, editable drafts, escalation, and a client approval view.
-Demo changes live in memory and reset on refresh. Approval does not send email.
-Inbox authentication, email ingestion, live AI triage, persistence, email delivery,
-and voice workflows are future work. VIP view is a demo toggle, not access control.
+The frontend connects to the workflow API: demo login, paginated inbox loading,
+draft saving, escalation, approval, editable client rules, and AI email simulation.
+Changes are stored in MongoDB and survive refresh within the 24-hour demo session.
+The session token stays in browser session storage; provider credentials stay on
+the backend. Approval saves a decision and does not send email. VIP view is a demo
+toggle, not access control. Real inbox OAuth, email delivery, and voice are future work.
+
+## Copilot panel
+
+Use **Ask Copilot** in the header to toggle the inbox assistant. It docks beside
+the inbox on desktop and opens as a full-width sheet on smaller screens. It can
+summarize the current client's inbox, list priority and unanswered threads, show
+delegation rules and existing draft suggestions, open related emails, and escalate
+the selected PA email through the backend. Enter sends a prompt; Shift+Enter adds
+a line break. Client switching clears that client's displayed conversation.
+
+Copilot currently uses inbox data and existing triage results. It does not make
+open-ended LLM chat requests or voice calls. AI email simulation does call the
+configured backend provider, with loading and retryable error states.
 
 The frontend routes `/`, `/dashboard`, and `/mail` open the PA dashboard at
 `/dashboard-2`. Unrelated template pages are no longer exposed by the app router.

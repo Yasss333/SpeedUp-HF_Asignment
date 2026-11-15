@@ -58,7 +58,7 @@ export function InboxList({
               {email.subject}
             </h3>
             <p className="line-clamp-2 text-xs leading-5 text-muted-foreground">
-              {email.body}
+              {email.summary}
             </p>
             <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
               <span>
