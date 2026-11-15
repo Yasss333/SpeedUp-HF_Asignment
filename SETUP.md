@@ -66,6 +66,15 @@ Set `MONGODB_URI=mongodb://127.0.0.1:27017` in `backend/.env`, then restart the 
 The database is prepared for future `users`, `clients`, and `emails` collections;
 this foundation does not seed or write data. `docker compose stop` preserves data.
 
+## Hosted frontend and backend
+
+Vercel builds `frontend/` and sets `VITE_API_BASE_URL=/api` for production and
+preview deployments. `frontend/vercel.json` proxies `/api/*` to
+`https://speedup-api-36zm.onrender.com/api/*`, so browser requests stay on the
+frontend origin and do not require cross-origin access on Render. Keep provider
+keys and database credentials on Render; Vite environment values are public.
+The local Vite proxy still connects to the local backend.
+
 ## Checks
 
 ```powershell

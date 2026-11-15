@@ -66,7 +66,7 @@ async function request(
 ): Promise<unknown> {
   let response: Response
   try {
-    response = await fetch(`/api${path}`, {
+    response = await fetch(`${import.meta.env.VITE_API_BASE_URL || "/api"}${path}`, {
       method,
       headers: {
         "Content-Type": "application/json",

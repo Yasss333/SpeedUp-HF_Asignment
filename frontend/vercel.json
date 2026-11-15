@@ -1,6 +1,7 @@
 {
   "installCommand": "npm ci",
   "rewrites": [
+    { "source": "/api/:path*", "destination": "https://speedup-api-36zm.onrender.com/api/:path*" },
     { "source": "/", "destination": "/index.html" },
     { "source": "/dashboard", "destination": "/index.html" },
     { "source": "/dashboard-2", "destination": "/index.html" },
