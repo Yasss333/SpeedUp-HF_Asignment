@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     mongodb_uri: SecretStr | None = None
     mongodb_database: str = "pa_ai_email_dashboard"
     openai_api_key: SecretStr | None = None
+    openrouter_api_key: SecretStr | None = None
     google_api_key: SecretStr | None = None
 
 
