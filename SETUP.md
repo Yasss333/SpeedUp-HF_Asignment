@@ -62,5 +62,6 @@ npm.cmd run lint
 - FastAPI router structure: https://fastapi.tiangolo.com/tutorial/bigger-applications/
 - MongoDB recommends PyMongo Async to replace deprecated Motor:
   https://www.mongodb.com/docs/languages/python/pymongo-driver/current/reference/migration/
-- Upstream git history and license are preserved. `origin` points at the template;
-  no project repository has been published to GitHub.
+- Upstream git history and license are preserved. `upstream` points at the template.
+- `origin` points at the private project repository:
+  https://github.com/Yasss333/SpeedUp-HF_Asignment
