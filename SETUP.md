@@ -1,7 +1,7 @@
 # PA AI Email Dashboard foundation
 
 This project runs a PA email workspace built on the Dashboard 2 template and a
-separate FastAPI service. The frontend has two demo clients, ownership queues,
+separate FastAPI service. The frontend has four demo clients, ownership queues,
 read-without-reply flags, editable drafts, escalation, and a client approval view.
 The frontend connects to the workflow API: demo login, paginated inbox loading,
 draft saving, escalation, approval, editable client rules, and AI email simulation.

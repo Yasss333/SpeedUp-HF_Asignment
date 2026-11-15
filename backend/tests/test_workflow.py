@@ -66,12 +66,22 @@ def login(api):
     return {"Authorization": "Bearer " + response.json()["access_token"]}
 
 
-def test_demo_has_two_clients_and_twelve_emails(api):
+def test_demo_has_four_distinct_inboxes(api):
     headers = login(api)
-    assert len(api.get("/api/clients", headers=headers).json()) == 2
-    emails = api.get("/api/emails", headers=headers).json()
-    assert emails["total"] == 12
-    assert any(row["read_no_reply"] for row in emails["items"])
+    clients = api.get("/api/clients", headers=headers).json()
+    assert len(clients) == 4
+    emails = api.get("/api/emails?page_size=100", headers=headers).json()
+    assert emails["total"] == 40
+    assert len({row["subject"] for row in emails["items"]}) == 40
+    for client in clients:
+        rows = [row for row in emails["items"] if row["client_id"] == client["id"]]
+        assert len(rows) == 10
+        assert {row["owner"] for row in rows} == {"PA", "CLIENT", "FYI"}
+        assert {row["owner"] for row in rows if row["priority"] == "HIGH"} == {
+            "PA",
+            "CLIENT",
+        }
+        assert any(row["read_no_reply"] for row in rows)
 
 
 def test_authentication_and_tenant_isolation(api):
@@ -122,7 +132,7 @@ def test_filters_pagination_and_validation(api):
     )
     result = response.json()
     assert len(result["items"]) == 2
-    assert result["total"] == 6
+    assert result["total"] == 10
     assert all(row["client_id"] == clients[0]["id"] for row in result["items"])
     assert api.get("/api/emails?page_size=0", headers=headers).status_code == 422
     assert api.get("/api/emails?owner=INVALID", headers=headers).status_code == 422
@@ -179,7 +189,7 @@ def test_simulation_persists_validated_ai_and_read_no_reply(api, monkeypatch):
     assert email["owner"] == "CLIENT"
     assert email["triage_source"] == "AI"
     assert api.get("/api/emails/" + email["id"], headers=headers).json() == email
-    assert api.get("/api/emails", headers=headers).json()["total"] == 13
+    assert api.get("/api/emails", headers=headers).json()["total"] == 41
 
 
 def test_simulation_failure_does_not_save_partial_email(api, monkeypatch):
@@ -204,7 +214,7 @@ def test_simulation_failure_does_not_save_partial_email(api, monkeypatch):
         },
     )
     assert result.status_code == 502
-    assert api.get("/api/emails", headers=headers).json()["total"] == 12
+    assert api.get("/api/emails", headers=headers).json()["total"] == 40
 
 
 def test_client_rules_are_scoped_and_editable(api):
