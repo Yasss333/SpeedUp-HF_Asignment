@@ -1,0 +1,9 @@
+{
+  "installCommand": "npm ci",
+  "rewrites": [
+    { "source": "/", "destination": "/index.html" },
+    { "source": "/dashboard", "destination": "/index.html" },
+    { "source": "/dashboard-2", "destination": "/index.html" },
+    { "source": "/mail", "destination": "/index.html" }
+  ]
+}
