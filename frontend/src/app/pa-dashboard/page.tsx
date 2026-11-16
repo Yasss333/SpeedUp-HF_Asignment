@@ -148,12 +148,12 @@ export default function PADashboard() {
             </Button>
             <Button
               id="copilot-toggle"
-              variant={copilotOpen ? "secondary" : "outline"}
+              className="border-indigo-400/70 bg-linear-to-r from-blue-700 via-indigo-700 to-violet-700 text-white shadow-[0_0_14px_#6366f150] hover:from-blue-800 hover:via-indigo-800 hover:to-violet-800 focus-visible:ring-cyan-400 aria-expanded:border-cyan-300"
               aria-expanded={copilotOpen}
               aria-controls="copilot-panel"
               onClick={() => setCopilotOpen(!copilotOpen)}
             >
-              <Sparkles />
+              <Sparkles className="text-cyan-200" />
               Ask Copilot
             </Button>
             <Button
