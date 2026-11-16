@@ -6,6 +6,13 @@ from fastapi.testclient import TestClient
 from app.main import app
 from app.workflow.store import get_store
 
+DEMO_COUNTS = {
+    "Vikram Shah": 71,
+    "Ananya Rao": 56,
+    "Meera Iyer": 47,
+    "Kabir Malhotra": 38,
+}
+
 
 class MemoryStore:
     def __init__(self):
@@ -13,6 +20,10 @@ class MemoryStore:
 
     async def insert(self, name, document):
         self.collections[name][document["_id"]] = deepcopy(document)
+
+    async def insert_many(self, name, documents):
+        for document in documents:
+            await self.insert(name, document)
 
     async def prepare(self):
         pass
@@ -69,19 +80,35 @@ def login(api):
 def test_demo_has_four_distinct_inboxes(api):
     headers = login(api)
     clients = api.get("/api/clients", headers=headers).json()
-    assert len(clients) == 4
-    emails = api.get("/api/emails?page_size=100", headers=headers).json()
-    assert emails["total"] == 80
-    assert len({row["subject"] for row in emails["items"]}) == 80
+    assert {client["name"] for client in clients} == DEMO_COUNTS.keys()
+    rows = []
+    total = sum(DEMO_COUNTS.values())
+    for page in range(1, 4):
+        result = api.get(
+            "/api/emails", headers=headers, params={"page": page, "page_size": 100}
+        ).json()
+        assert result["total"] == total
+        assert len(result["items"]) == min(100, total - (page - 1) * 100)
+        rows.extend(result["items"])
+    assert len({row["id"] for row in rows}) == total
+    assert len({row["subject"] for row in rows}) == total
     for client in clients:
-        rows = [row for row in emails["items"] if row["client_id"] == client["id"]]
-        assert len(rows) == 20
-        assert {row["owner"] for row in rows} == {"PA", "CLIENT", "FYI"}
-        assert {row["owner"] for row in rows if row["priority"] == "HIGH"} == {
+        inbox = [row for row in rows if row["client_id"] == client["id"]]
+        assert len(inbox) == DEMO_COUNTS[client["name"]]
+        assert {row["owner"] for row in inbox} == {"PA", "CLIENT", "FYI"}
+        assert {row["owner"] for row in inbox if row["priority"] == "HIGH"} == {
             "PA",
             "CLIENT",
         }
-        assert any(row["read_no_reply"] for row in rows)
+        assert any(row["read_no_reply"] for row in inbox)
+        assert any(row["has_reply"] for row in inbox)
+        assert any(not row["is_read"] for row in inbox)
+        assert any(row["subject"].startswith("Re: ") for row in inbox)
+        assert len({row["created_at"] for row in inbox}) > 10
+        assert all(
+            row["read_no_reply"] == (row["is_read"] and not row["has_reply"])
+            for row in inbox
+        )
 
 
 def test_authentication_and_tenant_isolation(api):
@@ -132,7 +159,7 @@ def test_filters_pagination_and_validation(api):
     )
     result = response.json()
     assert len(result["items"]) == 2
-    assert result["total"] == 20
+    assert result["total"] == DEMO_COUNTS[clients[0]["name"]]
     assert all(row["client_id"] == clients[0]["id"] for row in result["items"])
     assert api.get("/api/emails?page_size=0", headers=headers).status_code == 422
     assert api.get("/api/emails?owner=INVALID", headers=headers).status_code == 422
@@ -189,7 +216,10 @@ def test_simulation_persists_validated_ai_and_read_no_reply(api, monkeypatch):
     assert email["owner"] == "CLIENT"
     assert email["triage_source"] == "AI"
     assert api.get("/api/emails/" + email["id"], headers=headers).json() == email
-    assert api.get("/api/emails", headers=headers).json()["total"] == 81
+    assert (
+        api.get("/api/emails", headers=headers).json()["total"]
+        == sum(DEMO_COUNTS.values()) + 1
+    )
 
 
 def test_simulation_failure_does_not_save_partial_email(api, monkeypatch):
@@ -214,7 +244,9 @@ def test_simulation_failure_does_not_save_partial_email(api, monkeypatch):
         },
     )
     assert result.status_code == 502
-    assert api.get("/api/emails", headers=headers).json()["total"] == 80
+    assert api.get("/api/emails", headers=headers).json()["total"] == sum(
+        DEMO_COUNTS.values()
+    )
 
 
 def test_client_rules_are_scoped_and_editable(api):

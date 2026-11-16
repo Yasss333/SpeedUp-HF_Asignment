@@ -11,6 +11,9 @@ class MongoStore:
     async def insert(self, name, document):
         await self.database[name].insert_one(document.copy())
 
+    async def insert_many(self, name, documents):
+        await self.database[name].insert_many(documents)
+
     async def find_one(self, name, query):
         return await self.database[name].find_one(query)
 

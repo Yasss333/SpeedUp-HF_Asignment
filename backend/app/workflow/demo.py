@@ -1,5 +1,7 @@
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from uuid import uuid4
+
+from app.workflow.demo_correspondence import DEMO_CORRESPONDENCE
 
 DEFAULT_RULES = (
     "PA handles scheduling, invoices, travel, and routine follow-ups. "
@@ -661,8 +663,60 @@ DEMO_INBOXES = {
 }
 
 
+def correspondence(name):
+    for index, scenario in enumerate(DEMO_CORRESPONDENCE[name]):
+        subject, sender, owner, priority, category, context, request, resolution = (
+            scenario
+        )
+        resolved = index % 3 == 0
+        if resolved:
+            yield (
+                f"Re: {subject}",
+                resolution,
+                "FYI",
+                "LOW",
+                category,
+                True,
+                sender,
+                False,
+            )
+        else:
+            reminder = f"I’m following up on the note below. {request}"
+            yield (
+                f"Re: {subject}",
+                f"{reminder}\n\nEarlier note\n> {context}",
+                owner,
+                priority,
+                category,
+                index % 2 == 0,
+                sender,
+                False,
+            )
+        yield (
+            subject,
+            f"{request}\n\n{context}",
+            "FYI",
+            "LOW",
+            category,
+            True,
+            sender,
+            resolved,
+        )
+        yield (
+            f"Background for {subject}",
+            context,
+            "FYI",
+            "LOW",
+            category,
+            False,
+            sender,
+            False,
+        )
+
+
 async def seed_demo(store, user_id, expires_at):
     now = datetime.now(UTC)
+    emails = []
     for (name, email), examples in DEMO_INBOXES.items():
         client_id = str(uuid4())
         await store.insert(
@@ -676,31 +730,39 @@ async def seed_demo(store, user_id, expires_at):
                 "expires_at": expires_at,
             },
         )
-        for subject, body, owner, priority, category, is_read in examples:
-            await store.insert(
-                "emails",
+        messages = [
+            (*example, f"{example[4].lower()}@example.com", False)
+            for example in examples
+        ]
+        messages[4:4] = correspondence(name)
+        for index, message in enumerate(messages):
+            subject, body, owner, priority, category, is_read, sender, has_reply = (
+                message
+            )
+            received_at = now - timedelta(hours=index * 5)
+            emails.append(
                 {
                     "_id": str(uuid4()),
                     "tenant_id": user_id,
                     "client_id": client_id,
-                    "sender": f"{category.lower()}@example.com",
+                    "sender": sender,
                     "subject": subject,
                     "body": body,
                     "owner": owner,
                     "priority": priority,
                     "category": category,
-                    "summary": body,
+                    "summary": body.partition("\n\n")[0],
                     "reasoning": f"Demo routing: {category} belongs to {owner}.",
                     "suggested_draft": ""
                     if owner == "FYI"
                     else "Thank you for your email. I will review this and follow up shortly.",
                     "is_read": is_read,
-                    "has_reply": False,
-                    "read_no_reply": is_read,
+                    "has_reply": has_reply,
+                    "read_no_reply": is_read and not has_reply,
                     "status": "PENDING",
                     "triage_source": "DEMO",
-                    "created_at": now,
-                    "updated_at": now,
+                    "created_at": received_at,
+                    "updated_at": received_at,
                     "approved_at": None,
                     "sent_at": None,
                     "version": 1,
@@ -708,3 +770,4 @@ async def seed_demo(store, user_id, expires_at):
                     "priority_rank": {"HIGH": 0, "MEDIUM": 1, "LOW": 2}[priority],
                 },
             )
+    await store.insert_many("emails", emails)
