@@ -29,6 +29,8 @@ export function Copilot({
   open,
   onClose,
   client,
+  width,
+  onWidthChange,
   voiceSlot,
   email,
   onSelect,
@@ -36,6 +38,8 @@ export function Copilot({
   open: boolean
   onClose: () => void
   client: Client
+  width: number
+  onWidthChange: (width: number) => void
   voiceSlot: (element: HTMLDivElement | null) => void
   email?: Email
   onSelect: (id: string) => void
@@ -108,6 +112,20 @@ export function Copilot({
           <X />
         </Button>
       </div>
+      {!mobile && (
+        <label className="flex items-center gap-3 border-b px-4 py-2 text-xs text-muted-foreground">
+          Panel width
+          <input
+            type="range"
+            min={320}
+            max={512}
+            step={8}
+            value={width}
+            onChange={(event) => onWidthChange(event.currentTarget.valueAsNumber)}
+            className="min-w-0 flex-1 accent-indigo-500"
+          />
+        </label>
+      )}
       <div ref={voiceSlot} />
       <div
         className="min-h-0 flex-1 overflow-y-auto p-4"
@@ -234,7 +252,7 @@ export function Copilot({
       <SheetContent
           id="copilot-panel"
         showCloseButton={false}
-        className="!w-full !max-w-full gap-0"
+        className="!w-full !max-w-full gap-0 bg-[#f5f7ff] dark:bg-[#1c2133]"
       >
         <SheetHeader className="sr-only">
           <SheetTitle>Inbox assistant</SheetTitle>
@@ -249,7 +267,8 @@ export function Copilot({
     <aside
       id="copilot-panel"
       aria-label="Copilot panel"
-      className="fixed inset-y-0 right-0 z-40 flex w-96 flex-col border-l bg-background shadow-sm"
+      className="fixed inset-y-0 right-0 z-40 flex flex-col border-l bg-[#f5f7ff] shadow-sm dark:bg-[#1c2133]"
+      style={{ width }}
     >
       {content}
     </aside>

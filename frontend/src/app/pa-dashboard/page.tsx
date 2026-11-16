@@ -39,6 +39,7 @@ export default function PADashboard() {
   const [demoRunning, setDemoRunning] = useState(false)
   const demoRun = useRef<symbol | null>(null)
   const [copilotOpen, setCopilotOpen] = useState(false)
+  const [copilotWidth, setCopilotWidth] = useState(384)
   const [voiceSlot, setVoiceSlot] = useState<HTMLDivElement | null>(null)
   const { emails, clients, initialize, loading, busy, error } = useInbox()
   useEffect(() => {
@@ -143,7 +144,8 @@ export default function PADashboard() {
         }}
       />}
       <SidebarInset
-        className={cn("min-w-0 transition-[margin]", copilotOpen && "lg:mr-96")}
+        className={cn("min-w-0", copilotOpen && "lg:mr-(--copilot-width)")}
+        style={{ "--copilot-width": `${copilotWidth}px` } as React.CSSProperties}
       >
         <header className="flex min-h-16 flex-wrap items-center justify-between gap-3 border-b px-4 py-3 md:px-6">
           <div className="flex min-w-0 items-center gap-3">
@@ -335,6 +337,8 @@ export default function PADashboard() {
           document.getElementById("copilot-toggle")?.focus()
         }}
         client={client}
+        width={copilotWidth}
+        onWidthChange={setCopilotWidth}
         voiceSlot={setVoiceSlot}
         email={selected}
         onSelect={(id) => {
