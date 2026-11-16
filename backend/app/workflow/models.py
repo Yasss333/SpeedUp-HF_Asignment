@@ -77,3 +77,19 @@ class DraftInput(InputModel):
 
 class RulesInput(InputModel):
     rules: Text = Field(max_length=6000)
+
+
+class CopilotMessage(InputModel):
+    role: Literal["user", "assistant"]
+    text: Text = Field(max_length=4000)
+
+
+class CopilotInput(InputModel):
+    question: Text = Field(max_length=2000)
+    selected_email_id: str | None = Field(default=None, max_length=100)
+    history: list[CopilotMessage] = Field(default_factory=list, max_length=8)
+
+
+class CopilotAnswer(InputModel):
+    answer: Text = Field(max_length=4000)
+    email_ids: list[str] = Field(max_length=8)

@@ -1,4 +1,5 @@
 import { queues } from "./queues"
+import { PA_NAME } from "./pa"
 import {
   Sidebar,
   SidebarContent,
@@ -98,7 +99,7 @@ export function WorkspaceSidebar({
             PA
           </div>
           <div>
-            <p className="text-sm font-medium">Personal assistant</p>
+            <p className="text-sm font-medium">{PA_NAME}</p>
             <p className="text-xs text-muted-foreground">
               Multi-client workspace
             </p>

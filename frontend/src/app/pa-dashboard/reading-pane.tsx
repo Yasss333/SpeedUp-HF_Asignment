@@ -1,4 +1,5 @@
-import { ArrowUpRight, Check, Eye, Sparkles } from "lucide-react"
+import { useState } from "react"
+import { ArrowUpRight, Check, Eye, Send, Sparkles } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
@@ -14,6 +15,11 @@ export function ReadingPane({
   onNotice: (message: string) => void
 }) {
   const { updateDraft, saveDraft, escalate, approve, busy } = useInbox()
+  const [demoSendDrafts, setDemoSendDrafts] = useState<Record<string, string>>({})
+  const canDemoSend =
+    Boolean(email.savedDraft.trim()) &&
+    email.draft === email.savedDraft &&
+    demoSendDrafts[email.id] === email.savedDraft
   async function act(action: () => Promise<void>, message: string) {
     try {
       await action()
@@ -45,6 +51,11 @@ export function ReadingPane({
                 ? "PA action"
                 : "FYI"}
           </Badge>
+          {vip && email.reasoning === "Escalated to the client by the PA." && (
+            <Badge variant="secondary">
+              <ArrowUpRight /> Escalated to you by the PA
+            </Badge>
+          )}
           {email.approved && (
             <Badge variant="secondary">
               <Check /> Draft approved
@@ -118,11 +129,24 @@ export function ReadingPane({
                     email.draft === email.savedDraft
                   }
                   onClick={() =>
-                    void act(() => saveDraft(email.id), "Draft saved.")
+                    void act(async () => {
+                      await saveDraft(email.id)
+                      const saved = useInbox.getState().emails.find((item) => item.id === email.id)
+                      if (saved) setDemoSendDrafts((previous) => ({ ...previous, [saved.id]: saved.savedDraft }))
+                    }, "Draft saved.")
                   }
                 >
                   Save draft
                 </Button>
+                {canDemoSend && (
+                  <Button
+                    variant="outline"
+                    disabled={!!busy}
+                    onClick={() => onNotice("Send preview complete. No email was sent.")}
+                  >
+                    <Send /> Send (demo)
+                  </Button>
+                )}
                 {email.owner === "PA" && !vip && (
                   <Button
                     variant="outline"

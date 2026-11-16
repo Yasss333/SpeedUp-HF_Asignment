@@ -344,7 +344,7 @@ export default function PADashboard() {
           setSelectedId(id)
         }}
       />}
-      <VoiceCall client={client} emails={clientEmails} loading={loading} slot={copilotOpen && !vip ? voiceSlot : null} />
+      <VoiceCall client={client} emails={clientEmails} selectedEmailId={selected?.id} loading={loading} slot={copilotOpen && !vip ? voiceSlot : null} />
     </SidebarProvider>
   )
 }

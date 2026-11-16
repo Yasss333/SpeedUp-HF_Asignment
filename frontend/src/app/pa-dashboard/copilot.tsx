@@ -9,6 +9,8 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet"
+import { api } from "./api"
+import { PA_GREETING } from "./pa"
 import { useInbox, type Client, type Email } from "./store"
 
 interface Message {
@@ -41,12 +43,10 @@ export function Copilot({
   const mobile = useSyncExternalStore(subscribeToPanelWidth, () => window.matchMedia(panelQuery).matches, () => false)
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState("")
-  const { emails, escalate, busy } = useInbox()
+  const { emails } = useInbox()
+  const [asking, setAsking] = useState(false)
   const endRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
-  const pending = emails.filter(
-    (item) => item.clientId === client.id && !item.approved
-  )
   useEffect(() => {
     if (open && !mobile) inputRef.current?.focus()
   }, [open, mobile])
@@ -61,71 +61,29 @@ export function Copilot({
     window.addEventListener("keydown", escape)
     return () => window.removeEventListener("keydown", escape)
   }, [open, onClose])
-  function ask(prompt: string) {
+  async function ask(prompt: string) {
     const text = prompt.trim()
-    if (!text) return
-    const query = text.toLowerCase()
-    let reply: string
-    let related: Email[] = []
-    if (/draft|reply|response/.test(query) && email) {
-      reply =
-        email.draft ||
-        "This thread is informational and has no suggested reply."
-      related = [email]
-    } else if (/read|unanswered|no reply/.test(query)) {
-      related = pending.filter((item) => item.readNoReply)
-      reply = `${related.length} read conversations still have no reply. Read status does not mean the client handled them.`
-    } else if (/priority|urgent|important/.test(query)) {
-      related = pending.filter((item) => item.priority === "High")
-      reply = `${related.length} high-priority conversations need attention. Review the ownership and suggested reply before acting.`
-    } else if (/rule|delegat/.test(query)) {
-      reply = client.rules
-    } else if (/this email|this thread|selected|explain/.test(query) && email) {
-      reply = `${email.summary}\n\nOwnership: ${email.owner}. ${email.reasoning}`
-      related = [email]
-    } else if (/summari|overview|inbox|pending/.test(query)) {
-      reply = `${client.name} has ${pending.length} pending conversations: ${pending.filter((item) => item.owner === "PA").length} for the PA, ${pending.filter((item) => item.owner === "CLIENT").length} for client review, and ${pending.filter((item) => item.owner === "FYI").length} FYI. ${pending.filter((item) => item.readNoReply).length} were read without a reply.`
-      related = pending.filter((item) => item.priority === "High").slice(0, 3)
-    } else {
-      reply =
-        "I can summarize this inbox, find high-priority or unanswered threads, show delegation rules, and bring up the selected email's suggested reply. Choose a shortcut below."
-    }
+    if (!text || asking) return
+    setAsking(true)
+    setInput("")
     setMessages((previous) => [
       ...previous,
       { id: crypto.randomUUID(), role: "user", text },
-      {
-        id: crypto.randomUUID(),
-        role: "assistant",
-        text: reply,
-        emailIds: related.map((item) => item.id),
-      },
     ])
-    setInput("")
-  }
-  async function escalateSelected() {
-    if (!email) return
     try {
-      await escalate(email.id)
+      const history = messages.slice(-8).map(({ role, text }) => ({ role, text }))
+      const answer = await api.askCopilot(client.id, text, email?.id, history)
       setMessages((previous) => [
         ...previous,
-        {
-          id: crypto.randomUUID(),
-          role: "assistant",
-          text: `“${email.subject}” was moved to ${client.name}'s approval queue.`,
-        },
+        { id: crypto.randomUUID(), role: "assistant", text: answer.answer, emailIds: answer.email_ids },
       ])
-    } catch (error) {
+    } catch {
       setMessages((previous) => [
         ...previous,
-        {
-          id: crypto.randomUUID(),
-          role: "assistant",
-          text:
-            error instanceof Error
-              ? error.message
-              : "Escalation failed. Please retry.",
-        },
+        { id: crypto.randomUUID(), role: "assistant", text: "Copilot couldn't answer right now. Please try again." },
       ])
+    } finally {
+      setAsking(false)
     }
   }
   if (!open) return null
@@ -161,7 +119,7 @@ export function Copilot({
           <div className="py-7">
             <Sparkles className="mb-4 size-7" />
             <h3 className="text-xl font-semibold">
-              A little help with your inbox.
+              {PA_GREETING}
             </h3>
             <p className="mt-3 text-sm leading-6 text-muted-foreground">
               Review priorities, find unanswered threads, or work on a reply
@@ -205,6 +163,7 @@ export function Copilot({
             </div>
           ))}
         </div>
+        {asking && <p className="mt-3 text-sm text-muted-foreground">Reviewing this inbox…</p>}
         <div ref={endRef} />
       </div>
       <div className="space-y-3 border-t p-4">
@@ -224,22 +183,13 @@ export function Copilot({
               key={prompt}
               variant="outline"
               size="xs"
-              onClick={() => ask(prompt)}
+              disabled={asking}
+              onClick={() => void ask(prompt)}
             >
               {prompt}
             </Button>
           ))}
         </div>
-        {email?.owner === "PA" && !email.approved && (
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={!!busy}
-            onClick={escalateSelected}
-          >
-            <ArrowUpRight /> Escalate selected email
-          </Button>
-        )}
         <form
           className="rounded-xl border p-2 focus-within:ring-2 focus-within:ring-ring"
           onSubmit={(event) => {
@@ -265,7 +215,7 @@ export function Copilot({
               type="submit"
               aria-label="Send to copilot"
               size="icon-sm"
-              disabled={!input.trim()}
+              disabled={asking || !input.trim()}
             >
               <ArrowUp />
             </Button>

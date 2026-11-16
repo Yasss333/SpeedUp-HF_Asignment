@@ -10,6 +10,8 @@ from app.workflow.demo import seed_demo
 from app.workflow.limits import check_limit
 from app.workflow.models import (
     Client,
+    CopilotAnswer,
+    CopilotInput,
     DraftInput,
     Email,
     EmailPage,
@@ -93,6 +95,32 @@ async def rules(
         "clients", {"_id": client_id, "tenant_id": user_id}, {"rules": data.rules}
     )
     return public(row)
+
+
+@router.post("/clients/{client_id}/copilot", response_model=CopilotAnswer, tags=["Copilot"])
+async def copilot(
+    client_id: str, data: CopilotInput, user_id: UserDependency, store: StoreDependency
+):
+    from app.workflow.copilot import answer_inbox
+
+    client = await owned(store, "clients", client_id, user_id)
+    check_limit("copilot", user_id, 12)
+    rows = await store.find("emails", {"tenant_id": user_id, "client_id": client_id})
+    email_ids = {row["_id"] for row in rows}
+    if data.selected_email_id is not None and data.selected_email_id not in email_ids:
+        raise HTTPException(404, "Selected email not found")
+    result = await answer_inbox(
+        data.question,
+        [message.model_dump() for message in data.history],
+        public(client),
+        [public(row) for row in rows],
+        data.selected_email_id,
+    )
+    return result.model_copy(
+        update={"email_ids": list(dict.fromkeys(
+            email_id for email_id in result.email_ids if email_id in email_ids
+        ))}
+    )
 
 
 @router.get("/emails", response_model=EmailPage, tags=["Emails"])

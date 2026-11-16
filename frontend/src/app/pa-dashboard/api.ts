@@ -134,6 +134,20 @@ function mapEmail(input: unknown): Email {
   }
 }
 export const api = {
+  async askCopilot(
+    clientId: string,
+    question: string,
+    selectedEmailId: string | undefined,
+    history: { role: "user" | "assistant"; text: string }[],
+  ) {
+    return z.object({ answer: z.string(), email_ids: z.array(z.string()) }).parse(
+      await request(`/clients/${encodeURIComponent(clientId)}/copilot`, "POST", {
+        question,
+        selected_email_id: selectedEmailId,
+        history,
+      }),
+    )
+  },
   async login() {
     if (token) return
     const result = z

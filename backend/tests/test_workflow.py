@@ -77,6 +77,32 @@ def login(api):
     return {"Authorization": "Bearer " + response.json()["access_token"]}
 
 
+def test_copilot_reads_only_selected_inbox_and_filters_links(api, monkeypatch):
+    from app.workflow import copilot
+    from app.workflow.models import CopilotAnswer
+
+    headers = login(api)
+    client = api.get("/api/clients", headers=headers).json()[0]
+    path = f"/api/clients/{client['id']}/copilot"
+    payload = {"question": "What's my most urgent task?"}
+
+    async def answer(question, history, selected_client, emails, selected_email_id):
+        assert question == payload["question"]
+        assert selected_client == client
+        assert len(emails) == DEMO_COUNTS[client["name"]]
+        assert {email["client_id"] for email in emails} == {client["id"]}
+        assert selected_email_id is None
+        return CopilotAnswer(answer="Review the urgent email.", email_ids=[emails[0]["id"], "outside"])
+
+    monkeypatch.setattr(copilot, "answer_inbox", answer)
+    response = api.post(path, headers=headers, json=payload)
+    assert response.status_code == 200, response.text
+    assert response.json()["answer"] == "Review the urgent email."
+    assert len(response.json()["email_ids"]) == 1
+    assert "outside" not in response.json()["email_ids"]
+    assert api.post(path, headers=headers, json={**payload, "selected_email_id": "outside"}).status_code == 404
+
+
 def test_demo_has_four_distinct_inboxes(api):
     headers = login(api)
     clients = api.get("/api/clients", headers=headers).json()
