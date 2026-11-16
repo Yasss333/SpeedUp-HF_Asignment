@@ -71,11 +71,11 @@ def test_demo_has_four_distinct_inboxes(api):
     clients = api.get("/api/clients", headers=headers).json()
     assert len(clients) == 4
     emails = api.get("/api/emails?page_size=100", headers=headers).json()
-    assert emails["total"] == 40
-    assert len({row["subject"] for row in emails["items"]}) == 40
+    assert emails["total"] == 80
+    assert len({row["subject"] for row in emails["items"]}) == 80
     for client in clients:
         rows = [row for row in emails["items"] if row["client_id"] == client["id"]]
-        assert len(rows) == 10
+        assert len(rows) == 20
         assert {row["owner"] for row in rows} == {"PA", "CLIENT", "FYI"}
         assert {row["owner"] for row in rows if row["priority"] == "HIGH"} == {
             "PA",
@@ -132,7 +132,7 @@ def test_filters_pagination_and_validation(api):
     )
     result = response.json()
     assert len(result["items"]) == 2
-    assert result["total"] == 10
+    assert result["total"] == 20
     assert all(row["client_id"] == clients[0]["id"] for row in result["items"])
     assert api.get("/api/emails?page_size=0", headers=headers).status_code == 422
     assert api.get("/api/emails?owner=INVALID", headers=headers).status_code == 422
@@ -189,7 +189,7 @@ def test_simulation_persists_validated_ai_and_read_no_reply(api, monkeypatch):
     assert email["owner"] == "CLIENT"
     assert email["triage_source"] == "AI"
     assert api.get("/api/emails/" + email["id"], headers=headers).json() == email
-    assert api.get("/api/emails", headers=headers).json()["total"] == 41
+    assert api.get("/api/emails", headers=headers).json()["total"] == 81
 
 
 def test_simulation_failure_does_not_save_partial_email(api, monkeypatch):
@@ -214,7 +214,7 @@ def test_simulation_failure_does_not_save_partial_email(api, monkeypatch):
         },
     )
     assert result.status_code == 502
-    assert api.get("/api/emails", headers=headers).json()["total"] == 40
+    assert api.get("/api/emails", headers=headers).json()["total"] == 80
 
 
 def test_client_rules_are_scoped_and_editable(api):
