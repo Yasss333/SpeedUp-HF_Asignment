@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import {
   CheckCheck,
   Eye,
@@ -36,10 +36,14 @@ export default function PADashboard() {
   const [vip, setVip] = useState(false)
   const [notice, setNotice] = useState("")
   const [demoRunning, setDemoRunning] = useState(false)
+  const demoRun = useRef<symbol | null>(null)
   const [copilotOpen, setCopilotOpen] = useState(false)
   const { emails, clients, initialize, loading, busy, error } = useInbox()
   useEffect(() => {
     void initialize()
+    return () => {
+      demoRun.current = null
+    }
   }, [initialize])
   const client = clients.find((item) => item.id === clientId) ?? clients[0]
   if (!client)
@@ -80,7 +84,15 @@ export default function PADashboard() {
     setQueue("ALL")
     setNotice("")
   }
-  async function runDemoFeed(demoClientId: string) {
+  async function toggleDemoFeed(demoClientId: string) {
+    if (demoRun.current) {
+      demoRun.current = null
+      setDemoRunning(false)
+      setNotice("Demo feed stopped.")
+      return
+    }
+    const run = Symbol()
+    demoRun.current = run
     setDemoRunning(true)
     setQueue("ALL")
     setQuery("")
@@ -88,6 +100,7 @@ export default function PADashboard() {
       for (const template of simulationTemplates) {
         setNotice(`Demo email incoming: ${template.subject}…`)
         await new Promise((resolve) => window.setTimeout(resolve, 2500))
+        if (demoRun.current !== run) return
         const { simulate, busy } = useInbox.getState()
         if (busy) throw new Error("Another inbox action is running. Restart the demo feed when it finishes.")
         const id = await simulate({
@@ -98,20 +111,26 @@ export default function PADashboard() {
           is_read: template.label === "Read, no reply",
           has_reply: false,
         })
+        if (demoRun.current !== run) return
         const email = useInbox.getState().emails.find((item) => item.id === id)
         const destination = queues.find((item) => item.id === email?.owner)?.label
         setNotice(`Demo email received: ${template.subject} → ${destination ?? "Inbox"}`)
         await new Promise((resolve) => window.setTimeout(resolve, 4500))
+        if (demoRun.current !== run) return
       }
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : "Demo feed stopped. Try again.")
+      if (demoRun.current === run)
+        setNotice(error instanceof Error ? error.message : "Demo feed stopped. Try again.")
     } finally {
-      setDemoRunning(false)
+      if (demoRun.current === run) {
+        demoRun.current = null
+        setDemoRunning(false)
+      }
     }
   }
   return (
     <SidebarProvider>
-      <WorkspaceSidebar
+      {!vip && <WorkspaceSidebar
         clientId={client.id}
         onClient={changeClient}
         queue={activeQueue}
@@ -120,13 +139,13 @@ export default function PADashboard() {
           setVip(false)
           setNotice("")
         }}
-      />
+      />}
       <SidebarInset
         className={cn("min-w-0 transition-[margin]", copilotOpen && "lg:mr-96")}
       >
         <header className="flex min-h-16 flex-wrap items-center justify-between gap-3 border-b px-4 py-3 md:px-6">
           <div className="flex min-w-0 items-center gap-3">
-            <SidebarTrigger />
+            {!vip && <SidebarTrigger />}
             <span className="truncate text-sm text-muted-foreground">
               {client.name}
               <span className="mx-2">/</span>
@@ -146,7 +165,7 @@ export default function PADashboard() {
             >
               <RefreshCw className={cn(loading && "animate-spin")} />
             </Button>
-            <Button
+            {!vip && <Button
               id="copilot-toggle"
               className="border-indigo-400/70 bg-linear-to-r from-blue-700 via-indigo-700 to-violet-700 text-white shadow-[0_0_14px_#6366f150] hover:from-blue-800 hover:via-indigo-800 hover:to-violet-800 focus-visible:ring-cyan-400 aria-expanded:border-cyan-300"
               aria-expanded={copilotOpen}
@@ -155,11 +174,12 @@ export default function PADashboard() {
             >
               <Sparkles className="text-cyan-200" />
               Ask Copilot
-            </Button>
+            </Button>}
             <Button
               variant="outline"
               onClick={() => {
                 setVip(!vip)
+                setCopilotOpen(false)
                 setQuery("")
                 setNotice("")
               }}
@@ -189,8 +209,8 @@ export default function PADashboard() {
             </div>
             {!vip && (
               <div className="flex flex-wrap gap-2">
-                <Button variant="outline" disabled={demoRunning || Boolean(busy)} onClick={() => void runDemoFeed(client.id)}>
-                  {demoRunning ? "Demo feed running…" : "Start demo feed"}
+                <Button variant="outline" disabled={!demoRunning && Boolean(busy)} onClick={() => void toggleDemoFeed(client.id)}>
+                  {demoRunning ? "Stop demo feed" : "Start demo feed"}
                 </Button>
                 <SimulationDialog
                   clientId={client.id}
@@ -301,11 +321,11 @@ export default function PADashboard() {
           </div>
         </main>
         <footer className="border-t px-6 py-4 text-xs text-muted-foreground">
-          Speedup · PA email workspace{" "}
+          Speedup · {vip ? "Client approvals" : "PA email workspace"}{" "}
           <span className="float-right">Demo session</span>
         </footer>
       </SidebarInset>
-      <Copilot
+      {!vip && <Copilot
         key={client.id}
         open={copilotOpen}
         onClose={() => {
@@ -321,7 +341,7 @@ export default function PADashboard() {
           setQuery("")
           setSelectedId(id)
         }}
-      />
+      />}
     </SidebarProvider>
   )
 }
