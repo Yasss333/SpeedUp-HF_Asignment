@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { useInbox } from "./store"
 
-const templates = [
+export const simulationTemplates = [
   {
     label: "Investor decision",
     sender: "investor@example.com",
@@ -32,6 +32,12 @@ const templates = [
     subject: "Contract approval follow-up",
     body: "Following up on the contract you reviewed. Can you personally approve the liability terms before we proceed?",
   },
+  {
+    label: "FYI newsletter",
+    sender: "newsletter@example.com",
+    subject: "Weekly industry roundup",
+    body: "Here is this week's industry roundup for your information. No action or reply is needed.",
+  },
 ]
 export function SimulationDialog({
   clientId,
@@ -41,9 +47,9 @@ export function SimulationDialog({
   onCreated: (id: string) => void
 }) {
   const [open, setOpen] = useState(false)
-  const [sender, setSender] = useState(templates[0].sender)
-  const [subject, setSubject] = useState(templates[0].subject)
-  const [body, setBody] = useState(templates[0].body)
+  const [sender, setSender] = useState(simulationTemplates[0].sender)
+  const [subject, setSubject] = useState(simulationTemplates[0].subject)
+  const [body, setBody] = useState(simulationTemplates[0].body)
   const [read, setRead] = useState(false)
   const [error, setError] = useState("")
   const { simulate, busy } = useInbox()
@@ -96,7 +102,7 @@ export function SimulationDialog({
         </DialogHeader>
         <form onSubmit={submit} className="space-y-4">
           <div className="flex flex-wrap gap-2">
-            {templates.map((template, index) => (
+            {simulationTemplates.map((template) => (
               <Button
                 key={template.label}
                 type="button"
@@ -107,7 +113,7 @@ export function SimulationDialog({
                   setSender(template.sender)
                   setSubject(template.subject)
                   setBody(template.body)
-                  setRead(index === 2)
+                  setRead(template.label === "Read, no reply")
                 }}
               >
                 {template.label}

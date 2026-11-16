@@ -22,6 +22,7 @@ const emailSchema = z.object({
   has_reply: z.boolean(),
   status: z.enum(["PENDING", "APPROVED"]),
   triage_source: z.enum(["DEMO", "AI"]),
+  created_at: z.string(),
 })
 export interface Client {
   id: string
@@ -48,6 +49,7 @@ export interface Email {
   hasReply: boolean
   approved: boolean
   source: "DEMO" | "AI"
+  receivedAt: string
 }
 export interface Simulation {
   client_id: string
@@ -128,6 +130,7 @@ function mapEmail(input: unknown): Email {
     hasReply: row.has_reply,
     approved: row.status === "APPROVED",
     source: row.triage_source,
+    receivedAt: row.created_at,
   }
 }
 export const api = {

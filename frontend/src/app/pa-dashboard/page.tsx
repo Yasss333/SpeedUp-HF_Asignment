@@ -25,7 +25,7 @@ import { InboxList } from "./inbox-list"
 import { WorkspaceSidebar } from "./workspace-sidebar"
 import { queues } from "./queues"
 import { Copilot } from "./copilot"
-import { SimulationDialog } from "./simulation-dialog"
+import { SimulationDialog, simulationTemplates } from "./simulation-dialog"
 import { RulesEditor } from "./rules-editor"
 
 export default function PADashboard() {
@@ -35,6 +35,7 @@ export default function PADashboard() {
   const [selectedId, setSelectedId] = useState("v1")
   const [vip, setVip] = useState(false)
   const [notice, setNotice] = useState("")
+  const [demoRunning, setDemoRunning] = useState(false)
   const [copilotOpen, setCopilotOpen] = useState(false)
   const { emails, clients, initialize, loading, busy, error } = useInbox()
   useEffect(() => {
@@ -78,6 +79,35 @@ export default function PADashboard() {
     setQuery("")
     setQueue("ALL")
     setNotice("")
+  }
+  async function runDemoFeed(demoClientId: string) {
+    setDemoRunning(true)
+    setQueue("ALL")
+    setQuery("")
+    try {
+      for (const template of simulationTemplates) {
+        setNotice(`Demo email incoming: ${template.subject}…`)
+        await new Promise((resolve) => window.setTimeout(resolve, 2500))
+        const { simulate, busy } = useInbox.getState()
+        if (busy) throw new Error("Another inbox action is running. Restart the demo feed when it finishes.")
+        const id = await simulate({
+          client_id: demoClientId,
+          sender: template.sender,
+          subject: template.subject,
+          body: template.body,
+          is_read: template.label === "Read, no reply",
+          has_reply: false,
+        })
+        const email = useInbox.getState().emails.find((item) => item.id === id)
+        const destination = queues.find((item) => item.id === email?.owner)?.label
+        setNotice(`Demo email received: ${template.subject} → ${destination ?? "Inbox"}`)
+        await new Promise((resolve) => window.setTimeout(resolve, 4500))
+      }
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Demo feed stopped. Try again.")
+    } finally {
+      setDemoRunning(false)
+    }
   }
   return (
     <SidebarProvider>
@@ -158,15 +188,20 @@ export default function PADashboard() {
               </p>
             </div>
             {!vip && (
-              <SimulationDialog
-                clientId={client.id}
-                onCreated={(id) => {
-                  setQueue("ALL")
-                  setQuery("")
-                  setSelectedId(id)
-                  setNotice("Email triaged and saved to the inbox.")
-                }}
-              />
+              <div className="flex flex-wrap gap-2">
+                <Button variant="outline" disabled={demoRunning || Boolean(busy)} onClick={() => void runDemoFeed(client.id)}>
+                  {demoRunning ? "Demo feed running…" : "Start demo feed"}
+                </Button>
+                <SimulationDialog
+                  clientId={client.id}
+                  onCreated={(id) => {
+                    setQueue("ALL")
+                    setQuery("")
+                    setSelectedId(id)
+                    setNotice("Email triaged and saved to the inbox.")
+                  }}
+                />
+              </div>
             )}
           </div>
           {!vip && (

@@ -3,6 +3,11 @@ import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import type { Email } from "./store"
 
+const receivedTime = new Intl.DateTimeFormat(undefined, {
+  dateStyle: "medium",
+  timeStyle: "short",
+})
+
 export function InboxList({
   emails,
   selectedId,
@@ -61,6 +66,11 @@ export function InboxList({
               {email.summary}
             </p>
             <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+              {email.source === "AI" && (
+                <time dateTime={email.receivedAt}>
+                  {receivedTime.format(new Date(email.receivedAt))}
+                </time>
+              )}
               <span>
                 {email.approved
                   ? "Draft approved"
