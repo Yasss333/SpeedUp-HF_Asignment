@@ -25,6 +25,7 @@ import { InboxList } from "./inbox-list"
 import { WorkspaceSidebar } from "./workspace-sidebar"
 import { queues } from "./queues"
 import { Copilot } from "./copilot"
+import { VoiceCall } from "./voice-call"
 import { SimulationDialog, simulationTemplates } from "./simulation-dialog"
 import { RulesEditor } from "./rules-editor"
 
@@ -38,6 +39,7 @@ export default function PADashboard() {
   const [demoRunning, setDemoRunning] = useState(false)
   const demoRun = useRef<symbol | null>(null)
   const [copilotOpen, setCopilotOpen] = useState(false)
+  const [voiceSlot, setVoiceSlot] = useState<HTMLDivElement | null>(null)
   const { emails, clients, initialize, loading, busy, error } = useInbox()
   useEffect(() => {
     void initialize()
@@ -333,7 +335,7 @@ export default function PADashboard() {
           document.getElementById("copilot-toggle")?.focus()
         }}
         client={client}
-        vip={vip}
+        voiceSlot={setVoiceSlot}
         email={selected}
         onSelect={(id) => {
           setQueue("ALL")
@@ -342,6 +344,7 @@ export default function PADashboard() {
           setSelectedId(id)
         }}
       />}
+      <VoiceCall client={client} emails={clientEmails} loading={loading} slot={copilotOpen && !vip ? voiceSlot : null} />
     </SidebarProvider>
   )
 }

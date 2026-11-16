@@ -2,7 +2,6 @@ import { useEffect, useRef, useState, useSyncExternalStore } from "react"
 import { ArrowUp, ArrowUpRight, Mail, Sparkles, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
-import { VoiceCall } from "./voice-call"
 import {
   Sheet,
   SheetContent,
@@ -28,21 +27,21 @@ export function Copilot({
   open,
   onClose,
   client,
-  vip,
+  voiceSlot,
   email,
   onSelect,
 }: {
   open: boolean
   onClose: () => void
   client: Client
-  vip: boolean
+  voiceSlot: (element: HTMLDivElement | null) => void
   email?: Email
   onSelect: (id: string) => void
 }) {
   const mobile = useSyncExternalStore(subscribeToPanelWidth, () => window.matchMedia(panelQuery).matches, () => false)
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState("")
-  const { clients, emails, escalate, busy, loading } = useInbox()
+  const { emails, escalate, busy } = useInbox()
   const endRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const pending = emails.filter(
@@ -151,7 +150,7 @@ export function Copilot({
           <X />
         </Button>
       </div>
-      <VoiceCall key={String(vip)} clients={vip ? [client] : clients} emails={emails} vip={vip} loading={loading} />
+      <div ref={voiceSlot} />
       <div
         className="min-h-0 flex-1 overflow-y-auto p-4"
         role="log"
